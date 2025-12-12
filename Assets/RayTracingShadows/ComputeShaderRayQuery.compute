@@ -104,8 +104,7 @@ float GetSpotAttenuation(float3 worldPos)
     float denom = max(1e-5, (g_SpotInnerAngleCos - g_SpotAngleCos));
     float spotAtten = saturate((cosAngle - g_SpotAngleCos) / denom);
     float distAtten = saturate(1.0 - (distance / g_LightRange));
-    distAtten *= distAtten;
-    
+
     return spotAtten * distAtten;
 }
 
@@ -181,7 +180,7 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         
         rayDirection = toLight / distToLight;
         
-        if (dot(rayDirection, worldNormal) <= 0.05f)
+        if (dot(rayDirection, worldNormal) <= 0.0f)
         {
             g_Output[id.xy] = 1;
             return;

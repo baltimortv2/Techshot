@@ -397,14 +397,14 @@ public class RayTracedShadowPass : ScriptableRendererFeature
             cullingConfig.lodParameters.isOrthographic = false;
             cullingConfig.lodParameters.cameraPosition = cameraData.camera.transform.position;
             cullingConfig.subMeshFlagsConfig.opaqueMaterials = RayTracingSubMeshFlags.Enabled | RayTracingSubMeshFlags.ClosestHitOnly;
-            cullingConfig.subMeshFlagsConfig.transparentMaterials = RayTracingSubMeshFlags.Disabled;
-            cullingConfig.subMeshFlagsConfig.alphaTestedMaterials = RayTracingSubMeshFlags.Disabled;
+            cullingConfig.subMeshFlagsConfig.transparentMaterials = RayTracingSubMeshFlags.Enabled | RayTracingSubMeshFlags.ClosestHitOnly;
+            cullingConfig.subMeshFlagsConfig.alphaTestedMaterials = RayTracingSubMeshFlags.Enabled | RayTracingSubMeshFlags.ClosestHitOnly;
 
             var instanceTest = new RayTracingInstanceCullingTest
             {
                 allowOpaqueMaterials = true,
                 allowAlphaTestedMaterials = true,
-                allowTransparentMaterials = false,
+                allowTransparentMaterials = true,
                 layerMask = -1,
                 shadowCastingModeMask = (1 << (int)ShadowCastingMode.Off) | (1 << (int)ShadowCastingMode.On) | (1 << (int)ShadowCastingMode.TwoSided),
                 instanceMask = 1 << 0

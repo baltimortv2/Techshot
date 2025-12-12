@@ -144,10 +144,10 @@ public class RayTracedShadowsLight : MonoBehaviour
     {
         if (Light == null)
             return;
-        
-        bool shouldUseRTS = ShouldUseRayTracedShadows();
-        
-        if (shouldUseRTS)
+
+        bool shouldUseRTS = ShouldUseRayTracedShadows(out bool disableStandardShadows);
+
+        if (shouldUseRTS && disableStandardShadows)
         {
             // Disable standard shadows for RTS
             if (!_shadowsDisabledByRTS)
@@ -163,16 +163,18 @@ public class RayTracedShadowsLight : MonoBehaviour
         else
         {
             // Restore standard shadows
-            if (_shadowsDisabledByRTS || Light.shadows == LightShadows.None)
+            if (_shadowsDisabledByRTS)
             {
                 Light.shadows = _cachedShadowType;
                 _shadowsDisabledByRTS = false;
             }
         }
     }
-    
-    private bool ShouldUseRayTracedShadows()
+
+    private bool ShouldUseRayTracedShadows(out bool disableStandardShadows)
     {
+        disableStandardShadows = false;
+
         // If UseRayTracedShadows is off on this light, use standard shadows
         if (!_useRayTracedShadows)
             return false;
@@ -195,10 +197,9 @@ public class RayTracedShadowsLight : MonoBehaviour
         // RTS must be enabled in Volume
         if (!rtsVolume.IsActive())
             return false;
-        
-        // If disableStandardShadows is enabled, we should use RTS
-        // Otherwise, both RTS and standard shadows can coexist
-        return rtsVolume.disableStandardShadows.value;
+
+        disableStandardShadows = rtsVolume.disableStandardShadows.value;
+        return true;
     }
     
     /// <summary>
