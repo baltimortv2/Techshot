@@ -140,6 +140,8 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     #endif
 
     float2 uv = (float2(id.xy) + float2(0.5, 0.5)) / float2(width, height);
+    uv = UnityStereoTransformScreenSpaceTex(uv);
+    uv = uv * _ScreenCoordScaleBias.xy + _ScreenCoordScaleBias.zw;
     float3 worldSpacePos = ComputeWorldSpacePosition(uv, deviceDepth, unity_MatrixInvVP);
 
     if (g_ShadowReceiverMaxDistance > 0.0)
