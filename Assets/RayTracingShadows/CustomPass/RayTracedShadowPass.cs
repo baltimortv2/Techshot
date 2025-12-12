@@ -54,6 +54,9 @@ public class RayTracedShadowPass : ScriptableRendererFeature
             public TextureHandle depthTexture;
             public TextureHandle gbuffer2;
 
+            public int dispatchWidth;
+            public int dispatchHeight;
+
             public Material shadowMapBlitMat;
             public ComputeShader shadowMappingCS;
             public Light light;
@@ -184,11 +187,11 @@ public class RayTracedShadowPass : ScriptableRendererFeature
                 data.shadowMappingCS.GetKernelThreadGroupSizes(kernelIndex, out uint threadGroupSizeX, out uint threadGroupSizeY, out _);
 
                 float tanHalfFOV = Mathf.Tan(Mathf.Deg2Rad * data.cam.fieldOfView * 0.5f);
-                float aspectRatio = data.cam.pixelWidth / (float)data.cam.pixelHeight;
+                float aspectRatio = data.dispatchWidth / (float)data.dispatchHeight;
 
                 var depthToViewParams = new Vector4(
-                    2.0f * tanHalfFOV * aspectRatio / data.cam.pixelWidth,
-                    2.0f * tanHalfFOV / data.cam.pixelHeight,
+                    2.0f * tanHalfFOV * aspectRatio / data.dispatchWidth,
+                    2.0f * tanHalfFOV / data.dispatchHeight,
                     tanHalfFOV * aspectRatio,
                     tanHalfFOV
                 );
@@ -244,8 +247,8 @@ public class RayTracedShadowPass : ScriptableRendererFeature
                 context.cmd.SetComputeMatrixParam(data.shadowMappingCS, "g_LightMatrix", lightMatrix);
 
                 context.cmd.DispatchCompute(data.shadowMappingCS, kernelIndex,
-                    (int)((data.cam.pixelWidth + threadGroupSizeX - 1) / threadGroupSizeX),
-                    (int)((data.cam.pixelHeight + threadGroupSizeY - 1) / threadGroupSizeY), 1);
+                    (int)((data.dispatchWidth + threadGroupSizeX - 1) / threadGroupSizeX),
+                    (int)((data.dispatchHeight + threadGroupSizeY - 1) / threadGroupSizeY), 1);
 
                 // Update temporal data
                 lightData.prevLightMatrix = data.light.transform.localToWorldMatrix;
@@ -288,6 +291,11 @@ public class RayTracedShadowPass : ScriptableRendererFeature
 
             var resourceData = frameData.Get<UniversalResourceData>();
             var cameraData = frameData.Get<UniversalCameraData>();
+
+            int targetWidth = cameraData.cameraTargetDescriptor.width;
+            int targetHeight = cameraData.cameraTargetDescriptor.height;
+            if (targetWidth <= 0 || targetHeight <= 0)
+                return;
 
             TextureHandle depthTextureHandle = resourceData.cameraDepthTexture;
             if (!depthTextureHandle.IsValid())
@@ -368,10 +376,10 @@ public class RayTracedShadowPass : ScriptableRendererFeature
             }
 
             // Check camera resolution change
-            if (_cameraWidth != cameraData.camera.pixelWidth || _cameraHeight != cameraData.camera.pixelHeight)
+            if (_cameraWidth != targetWidth || _cameraHeight != targetHeight)
             {
-                _cameraWidth = (uint)cameraData.camera.pixelWidth;
-                _cameraHeight = (uint)cameraData.camera.pixelHeight;
+                _cameraWidth = (uint)targetWidth;
+                _cameraHeight = (uint)targetHeight;
                 // Reset all temporal data on resolution change
                 foreach (var kvp in _lightTemporalData)
                     kvp.Value.temporalAccumulationStep = 0;
@@ -432,7 +440,7 @@ public class RayTracedShadowPass : ScriptableRendererFeature
                 int lightInstanceId = light.GetInstanceID();
                 GetOrCreateLightData(lightInstanceId);
 
-                var desc = new TextureDesc(cameraData.camera.pixelWidth, cameraData.camera.pixelHeight)
+                var desc = new TextureDesc(targetWidth, targetHeight)
                 {
                     name = $"RTS_Shadowmap_{i}",
                     colorFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16_SFloat,
@@ -465,6 +473,8 @@ public class RayTracedShadowPass : ScriptableRendererFeature
                     passData.denoiseStrength = denoiseStr;
                     passData.denoiseMinBlend = denoiseMin;
                     passData.cam = cameraData.camera;
+                    passData.dispatchWidth = targetWidth;
+                    passData.dispatchHeight = targetHeight;
                     passData.debugLogs = debugLogs;
                     passData.rtas = rtas;
                     passData.rtasNeedsBuild = !_rtasBuiltThisFrame;
